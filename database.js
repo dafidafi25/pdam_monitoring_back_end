@@ -1,13 +1,36 @@
 import mysql from "mysql";
 
-let con = mysql.createConnection({
-  host: "192.168.1.100",
-  user: "root",
-  password: "root",
-  database: "pdam_monitoring",
-});
+export default class databases {
+  constructor(host, user, password, database) {
+    this.host = host;
+    this.user = user;
+    this.password = password;
+    this.database = database;
 
-console.log("tes");
+    this.db = mysql.createConnection({
+      host: this.host,
+      user: this.user,
+      password: this.password,
+      database: "pdam_monitoring",
+    });
+  }
+
+  insertPdamData(date, start_time, end_time, measurement) {
+    var query = `INSERT INTO pdam (date,start_time,end_time,measurement) VALUES ('${date}','${start_time}','${end_time}','${measurement}')`;
+    this.db.query(query, (err, result) => {
+      if (err) throw err;
+      console.log("1 record inserted, ID: " + result.insertId);
+    });
+  }
+
+  getPdamDataByPage() {
+    var query = `SELECT * FROM pdam`;
+    this.db.query(query, (err, result, fields) => {
+      if (err) throw err;
+      console.log(result);
+    });
+  }
+}
 
 // var db = new sqlite3.Database(
 //   "./database/home_key.db",

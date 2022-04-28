@@ -1,10 +1,36 @@
 import express from "express";
 import cors from "cors";
+import netServer from "./net.js";
+import EventEmitter from "events";
 
 import mysql from "mysql";
 import bodyParser from "body-parser";
 
+import databases from "./database.js";
+
 let app = express();
+
+const watcher = new EventEmitter();
+
+const db = new databases("localhost", "root", "root", "pdam_monitoring");
+
+var lampu_static_1 = new netServer(5000, "192.168.1.101", db);
+
+// lampu_static_1.send();
+watcher.on("Send", ({ trigger, id }) => {
+  switch (id) {
+    case "1":
+      lampu_static_1.send(trigger, id);
+      break;
+
+    case "2":
+      lampu_static_1.send(trigger, id);
+      break;
+
+    default:
+      break;
+  }
+});
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -68,6 +94,8 @@ app.post("/device/update/status/:id", (req, res) => {
     `UPDATE devices SET STATUS=${status} WHERE id = ${id}`,
     function (err, result, fields) {
       if (err) throw err;
+      watcher.emit("Send", { id: id, trigger: status });
+
       res.json(result);
     }
   );
@@ -85,16 +113,21 @@ app.get("/device/update/price/:id", (req, res) => {
   );
 });
 
+app.on("error", (err) => {
+  console.log("Server already started");
+});
+
+app.once("error", function (err) {
+  if (err.code === "EADDRINUSE") {
+    // port is currently in use
+  }
+});
+
+app.once("listening", function () {
+  // close the app if listening doesn't fail
+  app.close();
+});
+
 app.listen(5000, () => {
   console.log("CORS ENABLED");
 });
-
-function main() {
-  // let lampu_static_1 = new netServer(5000, "192.168.1.103");
-  // let lampu_static_2 = new netServer(5000, "192.168.1.102");
-  // let wemosDimmer = new firebaseListener('1310', server1);
-  // wemosDimmer.listen();
-  // let wemosLamp1 = new firebaseListener("1240", lampu_static_1);
-  // let wemosLamp2 = new firebaseListener("1250", lampu_static_2);
-}
-main();
